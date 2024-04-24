@@ -1,7 +1,6 @@
 import React, { useContext, useRef, useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { db, storage } from '../firebase'
-import { checkValidData } from '../validations/SellProductValidate'
 import { toast } from 'react-toastify';
 import { getDownloadURL, getStorage, ref, uploadBytes } from 'firebase/storage';
 import { addDoc, collection } from 'firebase/firestore';
@@ -9,52 +8,57 @@ import { UserAuth } from '../context/AuthContext';
 
 const SellProduct = () => {
 
-    const [productName, setProductName] = useState(null)
-    const [category, setCategory] = useState(null)
-    const [price, setPrice] = useState(null)
-    const [location, setLocation] = useState(null)
+    const [productName, setProductName] = useState('')
+    const [category, setCategory] = useState('')
+    const [price, setPrice] = useState('')
+    const [location, setLocation] = useState('')
     const [image, setImage] = useState(null)
     const fileInputRef = useRef(null)
+    const navigate = useNavigate()
 
     const { user } = UserAuth()
 
     const handleCreate = async (e) => {
         e.preventDefault();
-    
-        const message = checkValidData(productName, category, price, location)
-       
-        if(message) {
-          toast(message)
-          return;
-        }
-    
-        if(!image) {
-          toast("Upload an image")
-          toast.error("Please upload an image");
-          return;
-        }
-    
-        
-    
-        const storage = getStorage();
-        const storageRef = ref(storage, "images/" + image.name);
-        await uploadBytes(storageRef, image);  
-        const url = await getDownloadURL(storageRef);
-        const date = new Date();
-    
-        const docRef = await addDoc(collection(db, "products"), {
-          productName,
-          category,
-          price,
-          location,
-          url,
-          userId: user.user.uid,
-          createdAt: date.toDateString(),
-        });
-        if(docRef){
-            Navigate("/")
-        }
-      };
+        try {
+            if (productName && category && price && location && image) {
+            console.log(image)
+            const storageRef = ref(storage, image.name)
+
+            await uploadBytes(storageRef, image)
+            const imageUrl = await getDownloadURL(storageRef)
+
+            console.log("user",user)
+
+            const docRef = await addDoc(collection(db, "products"), {
+                productName,
+                category,
+                price,
+                location,
+                imageUrl,
+                userId: user.uid,
+              });
+              console.log("Product added with ID: ", docRef.id);
+      
+              // Clear form after successful submission
+            //   setProductName('');
+            //   setCategory('');
+            //   setPrice('');
+            //   setLocation('');
+            //   setImage(null);
+            //   fileInputRef.current.value = null;
+
+              console.log("Success")
+              navigate('/')
+
+            } else {
+              alert("Please fill in all fields!");
+            }
+          } catch (error) {
+            console.error("Error adding product: ", error);
+            throw new Error("Error adding product");
+          }
+        };
 
     return (
         <div className='bg-gray-100 grid grid-cols-12 pb-5'>
@@ -78,7 +82,7 @@ const SellProduct = () => {
                     {image !== null ? <img className='py-2 px-2 border-2 w-3/4 rounded-lg mx-auto' src={image !== null ? URL.createObjectURL(image) : null} alt="Product image" /> : null}
                     <div>
                         <label className='text-start ms-16 rounded-lg mt-5 block' htmlFor="">Choose a Picture</label>
-                        <input onChange={(e) => setImage(e.target.files[0])} className='py-2 px-2 border-2 w-3/4 rounded-lg mt-1 border-black' type="file" placeholder='Choose' />
+                        <input onChange={(e) => setImage(e.target.files[0])} className='py-2 px-2 border-2 w-3/4 rounded-lg mt-1 border-black' type="file" placeholder='Choose' ref={fileInputRef}/>
                     </div>
 
 

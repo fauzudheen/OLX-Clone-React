@@ -1,6 +1,28 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
+import Shimmer from './Shimmer'
+import Card from './Card'
+import { collection, getDoc, getDocs } from 'firebase/firestore'
+import { db } from '../firebase'
 
 const Posts = () => {
+
+    const [products, setProducts] = useState([])
+
+    const fetchData = async() => {
+        const querySnapshot = await getDocs(collection(db, "products"))
+        const allPosts = querySnapshot.docs.map((product) => {
+            return {
+                ...product.data(),
+                id: product.id
+            }
+        })
+
+        setProducts(allPosts)
+    }
+    useEffect(() => {
+        fetchData();
+    }, []);
+    
     return (
         <>
          <div className='bg-gray-50 shadow-md py-2'>
@@ -17,11 +39,21 @@ const Posts = () => {
                 </div>
             </div>
          </div>
-        <div className='container mx-auto mb-10 h-64'>
-            <h1 className='text-2xl my-6'>Fresh recommendations</h1>
-            <div className='grid grid-cols-4 gap-4'>
+
+        {!products.length ? <Shimmer /> : (
+            <div className='container mx-auto mb-10'>
+                <h1 className='text-2xl my-6'>Fresh recommendations</h1>
+                <div className='grid grid-cols-4 gap-4'>
+                    {console.log("proudcts", products)}
+                    {
+                        products.map((prod) => {
+                            return <Card key={prod.id} data={prod}/>
+                        })
+                    }
+                </div>
             </div>
-        </div>
+        )}
+
          </>
           
        )
